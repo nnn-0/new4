@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+
+{% block title %}Generate QR Codes - Smart Attendance System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-qrcode me-2"></i>QR Code Generation</h4>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <i class="fas fa-qrcode fa-5x text-primary mb-4"></i>
+                    <h5>Monthly QR Codes Generated Successfully!</h5>
+                    <p class="text-muted">QR codes have been generated for the entire month. Each day has a unique QR code that will be active only for that specific date.</p>
+                    
+                    {% if today_qr %}
+                    <div class="row justify-content-center mt-4">
+                        <div class="col-md-6">
+                            <div class="card bg-light">
+                                <div class="card-header">
+                                    <h6><i class="fas fa-calendar-day me-2"></i>Today's QR Code - {{ today_qr.date.strftime('%B %d, %Y') }}</h6>
+                                </div>
+                                <div class="card-body text-center">
+                                    <div id="qrcode" class="mb-3"></div>
+                                    <p class="small text-muted">QR Code: {{ today_qr.code }}</p>
+                                    <a href="{{ url_for('download_qr', date_str=today_qr.date.strftime('%Y-%m-%d')) }}" class="btn btn-success">
+                                        <i class="fas fa-download me-2"></i>Download PNG
+                                    </a>
+                                    <button class="btn btn-info" onclick="printQR()">
+                                        <i class="fas fa-print me-2"></i>Print QR Code
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="alert alert-info mt-4">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> QR codes are automatically generated when needed. You only need to use this function if you want to regenerate codes for the current month.
+                    </div>
+                    
+                    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-primary">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Instructions -->
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="fas fa-question-circle me-2"></i>QR Code Instructions</h6>
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li><strong>Daily Generation:</strong> New QR codes are automatically generated for each day of the month.</li>
+                    <li><strong>Display:</strong> Print or display the daily QR code in your department.</li>
+                    <li><strong>Time Restriction:</strong> QR codes are only valid during attendance hours (9:30 AM - 9:45 AM IST).</li>
+                    <li><strong>Security:</strong> Each QR code is unique and date-specific to prevent unauthorized access.</li>
+                    <li><strong>Faculty Scanning:</strong> Faculty members can scan the QR code using their mobile devices through the system.</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if today_qr %}
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Generate QR code
+    const qrCodeDiv = document.getElementById('qrcode');
+    const qrData = '{{ today_qr.code }}';
+    
+    QRCode.toCanvas(qrCodeDiv, qrData, {
+        width: 256,
+        height: 256,
+        colorDark: '#000000',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+    }, function (error) {
+        if (error) {
+            console.error('QR Code generation error:', error);
+            qrCodeDiv.innerHTML = '<p class="text-danger">Error generating QR code</p>';
+        }
+    });
+});
+
+function printQR() {
+    const printWindow = window.open('', '_blank');
+    const qrCanvas = document.querySelector('#qrcode canvas');
+    const qrData = '{{ today_qr.code }}';
+    const qrDate = '{{ today_qr.date.strftime("%B %d, %Y") }}';
+    
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>QR Code - ${qrDate}</title>
+            <style>
+                body { 
+                    font-family: Arial, sans-serif; 
+                    text-align: center; 
+                    margin: 20px;
+                }
+                .qr-container {
+                    border: 2px solid #000;
+                    padding: 20px;
+                    display: inline-block;
+                    margin: 20px;
+                }
+                h1 { color: #333; }
+                .instructions {
+                    margin-top: 20px;
+                    font-size: 14px;
+                    color: #666;
+                    max-width: 400px;
+                    margin-left: auto;
+                    margin-right: auto;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>Daily Attendance QR Code</h1>
+            <h2>${qrDate}</h2>
+            <div class="qr-container">
+                ${qrCanvas.outerHTML}
+            </div>
+            <div class="instructions">
+                <p><strong>Instructions for Faculty:</strong></p>
+                <p>• Scan this QR code between 9:30 AM and 9:45 AM IST to mark attendance</p>
+                <p>• Use your mobile device to scan through the attendance system</p>
+                <p>• Each faculty member can only mark attendance once per day</p>
+                <p><strong>QR Code:</strong> ${qrData}</p>
+            </div>
+        </body>
+        </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    
+    setTimeout(() => {
+        printWindow.print();
+        printWindow.close();
+    }, 500);
+}
+</script>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+
+{% block title %}Faculty Dashboard - Smart Attendance System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2><i class="fas fa-user-graduate me-2"></i>Faculty Dashboard</h2>
+        <p class="text-muted">Welcome, {{ user.full_name or user.username }}!</p>
+    </div>
+</div>
+
+<!-- Status Card -->
+<div class="row mb-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-calendar-day me-2"></i>Today's Attendance Status</h5>
+            </div>
+            <div class="card-body">
+                {% if today_attendance %}
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i>
+                        <strong>Attendance Marked!</strong> 
+                        {% if today_attendance.scan_time_ist %}
+                        You marked your attendance at {{ today_attendance.scan_time_ist.strftime('%I:%M %p') }} IST
+                        {% else %}
+                        You marked your attendance at {{ today_attendance.scan_time.strftime('%I:%M %p') }} IST
+                        {% endif %}
+                    </div>
+                {% else %}
+                    {% if can_mark_attendance %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-clock me-2"></i>
+                            <strong>Attendance Window Open!</strong> 
+                            You can mark your attendance now (24/7 testing mode)
+                        </div>
+                    {% else %}
+                        <div class="alert alert-danger">
+                            <i class="fas fa-times-circle me-2"></i>
+                            <strong>Attendance Not Marked!</strong> 
+                            {% if current_time.hour < 9 %}
+                                Attendance window opens at 9:00 AM IST
+                            {% else %}
+                                Attendance window has closed (4:00 PM IST)
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="fas fa-info-circle me-2"></i>Information</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Department:</strong> {{ user.department or 'N/A' }}</p>
+                <p><strong>Email:</strong> {{ user.email }}</p>
+                <p><strong>Current Time (IST):</strong> {{ current_time.strftime('%I:%M %p') }}</p>
+            </div>
+        </div>
+        
+        <!-- Biometric Registration Card -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6><i class="fas fa-fingerprint me-2"></i>Biometric Setup</h6>
+            </div>
+            <div class="card-body">
+                <div id="biometric-status" class="alert alert-warning">
+                    <i class="fas fa-exclamation-circle me-2"></i>Checking biometric status...
+                </div>
+                <div id="biometric-register-section" class="text-center" style="display: none;">
+                    <p class="text-muted mb-3">Register your fingerprint for quick login and attendance</p>
+                    <button type="button" id="biometric-register-btn" class="btn btn-primary">
+                        <i class="fas fa-fingerprint me-2"></i>Register Fingerprint
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+<!-- QR Scanner Section -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-fingerprint me-2"></i>Mark Attendance with Biometric Authentication</h5>
+            </div>
+            <div class="card-body">
+                {% if can_mark_attendance %}
+                    <div id="attendance-container" class="biometric-capture-container">
+                        <div class="attendance-instructions">
+                            <h6 class="text-center"><i class="fas fa-clock me-2"></i>Attendance Window</h6>
+                            <div class="time-window">24/7 Testing Mode - Attendance Available Anytime</div>
+                            <p class="text-center mb-0">Use fingerprint authentication or QR code to mark attendance</p>
+                        </div>
+                        
+                        <!-- Biometric authentication instructions -->
+                        <div class="text-center mb-3">
+                            <p class="text-muted">Choose your preferred method to mark attendance:</p>
+                        </div>
+                        
+                        <div class="capture-controls">
+                            <a href="{{ url_for('scan_qr') }}" class="btn btn-primary me-2">
+                                <i class="fas fa-qrcode me-2"></i>Mark Attendance with QR Code
+                            </a>
+                        </div>
+                        
+                        <!-- Biometric Attendance Option -->
+                        <div class="biometric-option mt-3">
+                            <hr>
+                            <div class="text-center">
+                                <h6><i class="fas fa-fingerprint me-2"></i>Biometric Attendance</h6>
+                                <p class="text-muted">Use your fingerprint to mark attendance</p>
+                                <button type="button" id="biometric-attendance-btn" class="btn btn-warning">
+                                    <i class="fas fa-fingerprint me-2"></i>Mark Attendance with Fingerprint
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted">
+                        {% if today_attendance %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                <p class="mb-0">You have already marked your attendance for today.</p>
+                                {% if today_attendance.biometric_confidence %}
+                                <small>Biometric confidence: {{ "%.1f%%" | format(today_attendance.biometric_confidence) }}%</small>
+                                {% endif %}
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                <p class="mb-1">Biometric attendance is currently not available.</p>
+                                <small><strong>Window:</strong> 9:00 AM - 2:00 PM & 4:00 PM - 10:00 PM (IST)</small>
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Instructions -->
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="fas fa-question-circle me-2"></i>Instructions</h6>
+            </div>
+            <div class="card-body">
+                <ol>
+                    <li>Attendance window: <strong>24/7 Testing Mode</strong> - Available anytime for testing purposes.</li>
+                    <li>Use biometric authentication (fingerprint) or QR code to mark your attendance during this extended window.</li>
+                    <li>Ensure your device supports biometric authentication for fingerprint scanning.</li>
+                    <li>You can only mark attendance once per day.</li>
+                    <li>Attendance reports are automatically sent to administrators at 9:45 AM IST.</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Check biometric registration status on page load
+document.addEventListener('DOMContentLoaded', async function() {
+    if (typeof WebAuthnManager !== 'undefined') {
+        window.webauthnManager = new WebAuthnManager();
+        await checkBiometricRegistrationStatus();
+    }
+});
+
+async function checkBiometricRegistrationStatus() {
+    const statusDiv = document.getElementById('biometric-status');
+    const registerSection = document.getElementById('biometric-register-section');
+    
+    try {
+        // Check if user has biometric credentials with retry logic
+        let response;
+        let retryCount = 0;
+        const maxRetries = 3;
+        
+        while (retryCount < maxRetries) {
+            try {
+                response = await fetch('/api/webauthn/status', {
+                    method: 'GET',
+                    headers: {'Content-Type': 'application/json'},
+                    cache: 'no-cache'
+                });
+                break;
+            } catch (fetchError) {
+                retryCount++;
+                if (retryCount === maxRetries) throw fetchError;
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1 second before retry
+            }
+        }
+        
+        if (response && response.ok) {
+            const result = await response.json();
+            
+            if (result.registered) {
+                statusDiv.innerHTML = '<i class="fas fa-check-circle text-success me-2"></i>Fingerprint registered and ready';
+                statusDiv.className = 'alert alert-success';
+                registerSection.style.display = 'none';
+                
+                // Also update any biometric buttons to be enabled
+                const biometricBtns = document.querySelectorAll('#biometric-attendance-btn');
+                biometricBtns.forEach(btn => {
+                    btn.disabled = false;
+                    btn.classList.remove('btn-secondary');
+                    btn.classList.add('btn-warning');
+                });
+            } else {
+                statusDiv.innerHTML = '<i class="fas fa-exclamation-circle text-warning me-2"></i>Fingerprint not registered - Register below';
+                statusDiv.className = 'alert alert-warning';
+                registerSection.style.display = 'block';
+                
+                // Disable biometric attendance buttons
+                const biometricBtns = document.querySelectorAll('#biometric-attendance-btn');
+                biometricBtns.forEach(btn => {
+                    btn.disabled = true;
+                    btn.classList.remove('btn-warning');
+                    btn.classList.add('btn-secondary');
+                    btn.innerHTML = '<i class="fas fa-fingerprint me-2"></i>Register Fingerprint First';
+                });
+            }
+        } else {
+            throw new Error('Failed to check biometric status');
+        }
+    } catch (error) {
+        console.error('Error checking biometric status:', error);
+        statusDiv.innerHTML = '<i class="fas fa-exclamation-triangle text-warning me-2"></i>Unable to check fingerprint status - Please refresh page';
+        statusDiv.className = 'alert alert-warning';
+        registerSection.style.display = 'block';
+    }
+}
+</script>
+{% endblock %}

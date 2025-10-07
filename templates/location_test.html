@@ -1,0 +1,287 @@
+{% extends "base.html" %}
+
+{% block title %}GPS Location Test - Smart Attendance System{% endblock %}
+
+{% block head %}
+<style>
+    .test-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    .location-info {
+        background: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin: 20px 0;
+    }
+    .status-card {
+        border-radius: 10px;
+        padding: 15px;
+        margin: 10px 0;
+        border-left: 4px solid;
+    }
+    .status-allowed {
+        border-left-color: #28a745;
+        background: #d4edda;
+        color: #155724;
+    }
+    .status-denied {
+        border-left-color: #dc3545;
+        background: #f8d7da;
+        color: #721c24;
+    }
+    .status-testing {
+        border-left-color: #ffc107;
+        background: #fff3cd;
+        color: #856404;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="test-container">
+    <div class="row">
+        <div class="col-12">
+            <h2><i class="fas fa-map-marker-alt me-2"></i>GPS Location Testing</h2>
+            <p class="text-muted">Test the GPS location verification system for Vemu Institute of Technology</p>
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header">
+            <h5><i class="fas fa-satellite-dish me-2"></i>Location Verification Test</h5>
+        </div>
+        <div class="card-body">
+            <div class="alert alert-info">
+                <h6><i class="fas fa-info-circle me-2"></i>College Information</h6>
+                <p><strong>Name:</strong> Vemu Institute of Technology, Chittoor</p>
+                <p><strong>Location:</strong> P. Kothakota, Tirupati-Chittoor Highway</p>
+                <p><strong>Allowed Radius:</strong> 500 meters from campus</p>
+                <p class="mb-0"><strong>GPS Coordinates:</strong> 13.3167°N, 79.0833°E</p>
+            </div>
+            
+            <div id="status-display" class="status-card status-testing">
+                <i class="fas fa-spinner fa-spin me-2"></i>Click "Test GPS Location" to start verification
+            </div>
+            
+            <div class="text-center">
+                <button id="test-location-btn" class="btn btn-primary btn-lg">
+                    <i class="fas fa-crosshairs me-2"></i>Test GPS Location
+                </button>
+                <button id="simulate-inside-btn" class="btn btn-success ms-2">
+                    <i class="fas fa-check me-2"></i>Simulate Inside College
+                </button>
+                <button id="simulate-outside-btn" class="btn btn-danger ms-2">
+                    <i class="fas fa-times me-2"></i>Simulate Outside College
+                </button>
+            </div>
+            
+            <div id="location-details" class="location-info" style="display: none;">
+                <h6><i class="fas fa-map me-2"></i>Location Details</h6>
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Your Latitude:</strong> <span id="user-lat">-</span></p>
+                        <p><strong>Your Longitude:</strong> <span id="user-lon">-</span></p>
+                        <p><strong>GPS Accuracy:</strong> <span id="gps-accuracy">-</span>m</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Distance to College:</strong> <span id="distance">-</span>m</p>
+                        <p><strong>Access Status:</strong> <span id="access-status">-</span></p>
+                        <p><strong>Verification Time:</strong> <span id="verify-time">-</span></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5><i class="fas fa-shield-alt me-2"></i>Security Features</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <i class="fas fa-map-marker-alt text-primary" style="font-size: 2rem;"></i>
+                        <h6 class="mt-2">GPS Verification</h6>
+                        <p class="small text-muted">Real-time location tracking using device GPS</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <i class="fas fa-shield-check text-success" style="font-size: 2rem;"></i>
+                        <h6 class="mt-2">Geofencing</h6>
+                        <p class="small text-muted">500m radius restriction around college campus</p>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-center">
+                        <i class="fas fa-ban text-danger" style="font-size: 2rem;"></i>
+                        <h6 class="mt-2">Access Control</h6>
+                        <p class="small text-muted">Prevents remote attendance from home/outside</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="text-center mt-4">
+        <a href="{{ url_for('login') }}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Login
+        </a>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-primary">
+            <i class="fas fa-tachometer-alt me-2"></i>Admin Dashboard
+        </a>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const testBtn = document.getElementById('test-location-btn');
+    const simulateInsideBtn = document.getElementById('simulate-inside-btn');
+    const simulateOutsideBtn = document.getElementById('simulate-outside-btn');
+    const statusDisplay = document.getElementById('status-display');
+    const locationDetails = document.getElementById('location-details');
+
+    function updateStatus(message, type, details = null) {
+        statusDisplay.className = `status-card status-${type}`;
+        statusDisplay.innerHTML = message;
+        
+        if (details) {
+            document.getElementById('user-lat').textContent = details.latitude?.toFixed(6) || '-';
+            document.getElementById('user-lon').textContent = details.longitude?.toFixed(6) || '-';
+            document.getElementById('gps-accuracy').textContent = details.accuracy || '-';
+            document.getElementById('distance').textContent = details.distance || '-';
+            document.getElementById('access-status').textContent = details.allowed ? 'ALLOWED' : 'DENIED';
+            document.getElementById('verify-time').textContent = new Date().toLocaleString();
+            locationDetails.style.display = 'block';
+        }
+    }
+
+    // Test actual GPS location
+    testBtn.addEventListener('click', function() {
+        updateStatus('<i class="fas fa-spinner fa-spin me-2"></i>Getting your GPS location...', 'testing');
+        
+        if (!navigator.geolocation) {
+            updateStatus('<i class="fas fa-exclamation-triangle me-2"></i>GPS not supported by this browser', 'denied');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                
+                // Send to verification API
+                fetch('/api/verify_location', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        latitude: lat,
+                        longitude: lon
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    const statusType = data.allowed ? 'allowed' : 'denied';
+                    const icon = data.allowed ? 'fa-check-circle' : 'fa-times-circle';
+                    const message = `<i class="fas ${icon} me-2"></i>${data.message} (${data.distance}m from college)`;
+                    
+                    updateStatus(message, statusType, {
+                        latitude: lat,
+                        longitude: lon,
+                        accuracy: Math.round(position.coords.accuracy),
+                        distance: data.distance,
+                        allowed: data.allowed
+                    });
+                })
+                .catch(error => {
+                    updateStatus('<i class="fas fa-exclamation-triangle me-2"></i>Verification failed: ' + error.message, 'denied');
+                });
+            },
+            function(error) {
+                let message = 'Location access denied';
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        message = 'Location access denied by user';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        message = 'Location information unavailable';
+                        break;
+                    case error.TIMEOUT:
+                        message = 'Location request timeout';
+                        break;
+                }
+                updateStatus(`<i class="fas fa-exclamation-triangle me-2"></i>${message}`, 'denied');
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 60000
+            }
+        );
+    });
+
+    // Simulate inside college
+    simulateInsideBtn.addEventListener('click', function() {
+        updateStatus('<i class="fas fa-spinner fa-spin me-2"></i>Simulating location inside college...', 'testing');
+        
+        // Use exact college coordinates
+        const collegeData = {
+            latitude: 13.3167,
+            longitude: 79.0833
+        };
+        
+        fetch('/api/verify_location', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(collegeData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            updateStatus('<i class="fas fa-check-circle me-2"></i>SIMULATION: Inside college premises - Access granted!', 'allowed', {
+                latitude: collegeData.latitude,
+                longitude: collegeData.longitude,
+                accuracy: 5,
+                distance: data.distance,
+                allowed: data.allowed
+            });
+        });
+    });
+
+    // Simulate outside college
+    simulateOutsideBtn.addEventListener('click', function() {
+        updateStatus('<i class="fas fa-spinner fa-spin me-2"></i>Simulating location outside college...', 'testing');
+        
+        // Use random coordinates far from college
+        const outsideData = {
+            latitude: 13.2180,  // Different location in Chittoor
+            longitude: 79.1003
+        };
+        
+        fetch('/api/verify_location', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(outsideData)
+        })
+        .then(response => response.json())
+        .then(data => {
+            updateStatus('<i class="fas fa-times-circle me-2"></i>SIMULATION: Outside college premises - Access denied!', 'denied', {
+                latitude: outsideData.latitude,
+                longitude: outsideData.longitude,
+                accuracy: 10,
+                distance: data.distance,
+                allowed: data.allowed
+            });
+        });
+    });
+});
+</script>
+{% endblock %}

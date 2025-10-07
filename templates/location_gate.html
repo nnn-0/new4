@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location Verification - Smart Attendance System</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.replit.com/agent/bootstrap-agent-dark-theme.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        .location-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .location-card {
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .pulse {
+            animation: pulse 2s ease-in-out infinite alternate;
+        }
+        @keyframes pulse {
+            from { transform: scale(1); }
+            to { transform: scale(1.05); }
+        }
+        .location-status {
+            font-size: 1.2rem;
+            margin: 20px 0;
+        }
+        .college-info {
+            background: rgba(0, 123, 255, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="location-container">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="card location-card">
+                        <div class="card-body text-center p-5">
+                            <div id="location-icon" class="mb-4">
+                                <i class="fas fa-map-marker-alt fa-4x text-primary pulse"></i>
+                            </div>
+                            
+                            <h2 class="card-title mb-4">
+                                <i class="fas fa-user-friends me-2"></i>
+                                Smart Attendance System
+                            </h2>
+                            
+                            <div class="college-info">
+                                <h5><i class="fas fa-university me-2"></i>VEMU Institute of Technology</h5>
+                                <p class="mb-0 text-muted">P. Kothakota, Chittoor District</p>
+                            </div>
+                            
+                            <div id="location-status" class="location-status">
+                                <div class="spinner-border text-primary me-2" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                Checking your location...
+                            </div>
+                            
+                            <div id="location-details" class="mt-3 text-muted small" style="display: none;">
+                                <p id="coordinates-display"></p>
+                                <p id="distance-display"></p>
+                            </div>
+                            
+                            <div id="action-buttons" style="display: none;">
+                                <button id="proceed-btn" class="btn btn-success btn-lg me-2" style="display: none;">
+                                    <i class="fas fa-arrow-right me-2"></i>Proceed to Login
+                                </button>
+                                <button id="retry-btn" class="btn btn-warning btn-lg" style="display: none;">
+                                    <i class="fas fa-redo me-2"></i>Retry Location
+                                </button>
+                            </div>
+                            
+                            <div id="help-section" class="mt-4" style="display: none;">
+                                <div class="alert alert-info">
+                                    <h6><i class="fas fa-info-circle me-2"></i>Location Required</h6>
+                                    <p class="mb-0">This system requires you to be physically present at the college campus. Please:</p>
+                                    <ul class="text-start mt-2 mb-2">
+                                        <li>Enable GPS/Location services</li>
+                                        <li>Ensure you're within college premises</li>
+                                        <li>Allow location access when prompted</li>
+                                    </ul>
+                                    <div class="mt-3">
+                                        <button class="btn btn-warning btn-sm" onclick="bypassLocationCheck()" id="bypass-btn">
+                                            <i class="fas fa-unlock me-1"></i>I'm inside college - Continue anyway
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        let userLocation = null;
+        let locationCheckAttempts = 0;
+        const maxAttempts = 3;
+
+        // College boundary coordinates (Updated precise GPS coordinates from map)
+        const COLLEGE_BOUNDARY = [
+            [13.417390, 79.116548],    // Point 1 (northeast corner)
+            [13.417455, 79.115000],    // Point 2 (northwest corner)
+            [13.419012, 79.115183],    // Point 3 (southwest corner)
+            [13.418937, 79.116615],    // Point 4 (southeast corner)
+        ];
+        
+        // Calculate circle center and radius
+        const COLLEGE_CENTER = calculateCenterPoint();
+        const COLLEGE_RADIUS = calculateRadius();
+        
+        function calculateCenterPoint() {
+            let totalLat = 0, totalLon = 0;
+            for (let point of COLLEGE_BOUNDARY) {
+                totalLat += point[0];
+                totalLon += point[1];
+            }
+            return [totalLat / COLLEGE_BOUNDARY.length, totalLon / COLLEGE_BOUNDARY.length];
+        }
+        
+        function calculateRadius() {
+            let maxDistance = 0;
+            for (let point of COLLEGE_BOUNDARY) {
+                let distance = calculateDistance(COLLEGE_CENTER[0], COLLEGE_CENTER[1], point[0], point[1]);
+                maxDistance = Math.max(maxDistance, distance);
+            }
+            return maxDistance + 50; // Add 50m buffer
+        }
+        
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371000; // Earth's radius in meters
+            const lat1Rad = lat1 * Math.PI / 180;
+            const lat2Rad = lat2 * Math.PI / 180;
+            const deltaLat = (lat2 - lat1) * Math.PI / 180;
+            const deltaLon = (lon2 - lon1) * Math.PI / 180;
+            
+            const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) +
+                      Math.cos(lat1Rad) * Math.cos(lat2Rad) *
+                      Math.sin(deltaLon/2) * Math.sin(deltaLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            
+            return R * c;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeLocationCheck();
+            
+            document.getElementById('proceed-btn').addEventListener('click', function() {
+                window.location.href = '/login';
+            });
+            
+            document.getElementById('retry-btn').addEventListener('click', function() {
+                locationCheckAttempts = 0;
+                initializeLocationCheck();
+            });
+        });
+
+        function initializeLocationCheck() {
+            updateLocationStatus('Checking your location...', 'info', true);
+            hideActionButtons();
+            
+            if (!navigator.geolocation) {
+                updateLocationStatus('Location services not supported by this browser', 'error', false);
+                showHelpSection();
+                return;
+            }
+            
+            locationCheckAttempts++;
+            
+            navigator.geolocation.getCurrentPosition(
+                handleLocationSuccess,
+                handleLocationError,
+                {
+                    enableHighAccuracy: true,
+                    timeout: 15000,
+                    maximumAge: 60000
+                }
+            );
+        }
+
+        function handleLocationSuccess(position) {
+            userLocation = {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+                accuracy: position.coords.accuracy
+            };
+            
+            updateLocationDetails();
+            verifyLocationWithServer();
+        }
+
+        function handleLocationError(error) {
+            console.error('Location error:', error);
+            
+            let message = 'Location access required';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message = 'Location access denied. Please enable GPS and allow location access.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = 'Location information unavailable. Please check your GPS settings.';
+                    break;
+                case error.TIMEOUT:
+                    message = 'Location request timed out. Please try again.';
+                    break;
+            }
+            
+            updateLocationStatus(message, 'error', false);
+            showRetryButton();
+            showHelpSection();
+        }
+
+        function verifyLocationWithServer() {
+            updateLocationStatus('Verifying college location...', 'info', true);
+            
+            fetch('/api/verify_location', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    latitude: userLocation.latitude,
+                    longitude: userLocation.longitude
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.allowed) {
+                    updateLocationStatus('✅ Location verified! You are at college premises.', 'success', false);
+                    updateLocationIcon('fas fa-check-circle text-success');
+                    showProceedButton();
+                } else {
+                    updateLocationStatus(`❌ ${data.message}`, 'error', false);
+                    updateLocationIcon('fas fa-times-circle text-danger');
+                    showRetryButton();
+                    showHelpSection();
+                }
+            })
+            .catch(error => {
+                console.error('Location verification error:', error);
+                updateLocationStatus('Location verification failed. Please try again.', 'error', false);
+                showRetryButton();
+            });
+        }
+
+        function updateLocationStatus(message, type, showSpinner) {
+            const statusElement = document.getElementById('location-status');
+            let className = 'text-info';
+            
+            switch(type) {
+                case 'success':
+                    className = 'text-success';
+                    break;
+                case 'error':
+                    className = 'text-danger';
+                    break;
+                case 'warning':
+                    className = 'text-warning';
+                    break;
+            }
+            
+            const spinnerHtml = showSpinner ? '<div class="spinner-border text-primary me-2" role="status"><span class="visually-hidden">Loading...</span></div>' : '';
+            statusElement.className = `location-status ${className}`;
+            statusElement.innerHTML = `${spinnerHtml}${message}`;
+        }
+
+        function updateLocationDetails() {
+            if (userLocation) {
+                document.getElementById('coordinates-display').textContent = 
+                    `Coordinates: ${userLocation.latitude.toFixed(6)}, ${userLocation.longitude.toFixed(6)}`;
+                document.getElementById('distance-display').textContent = 
+                    `Accuracy: ±${Math.round(userLocation.accuracy)}m`;
+                document.getElementById('location-details').style.display = 'block';
+            }
+        }
+
+        function updateLocationIcon(iconClass) {
+            const iconElement = document.querySelector('#location-icon i');
+            iconElement.className = `${iconClass} fa-4x`;
+            iconElement.classList.remove('pulse');
+        }
+
+        function showProceedButton() {
+            document.getElementById('proceed-btn').style.display = 'inline-block';
+            document.getElementById('action-buttons').style.display = 'block';
+        }
+
+        function showRetryButton() {
+            if (locationCheckAttempts < maxAttempts) {
+                document.getElementById('retry-btn').style.display = 'inline-block';
+                document.getElementById('action-buttons').style.display = 'block';
+            }
+        }
+
+        function hideActionButtons() {
+            document.getElementById('proceed-btn').style.display = 'none';
+            document.getElementById('retry-btn').style.display = 'none';
+            document.getElementById('action-buttons').style.display = 'none';
+        }
+
+        function showHelpSection() {
+            document.getElementById('help-section').style.display = 'block';
+        }
+        
+        function bypassLocationCheck() {
+            // Allow manual bypass for users inside college with poor GPS
+            updateLocationStatus('✅ Manual verification - Proceeding to system', 'success', false);
+            updateLocationIcon('fas fa-check-circle text-success');
+            showProceedButton();
+            document.getElementById('bypass-btn').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

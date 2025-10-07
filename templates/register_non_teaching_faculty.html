@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Register Non-Teaching Faculty - Smart Attendance System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h4><i class="fas fa-user-tie me-2"></i>Register New Non-Teaching Faculty</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="full_name" class="form-label">Full Name *</label>
+                            <input type="text" class="form-control" id="full_name" name="full_name" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="username" class="form-label">Username *</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                            <div class="form-text">This will be used for login</div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email Address *</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="department" class="form-label">Department *</label>
+                            <select class="form-select" id="department" name="department" required>
+                                <option value="">Select Department</option>
+                                <option value="Administration">Administration</option>
+                                <option value="Finance">Finance</option>
+                                <option value="HR">Human Resources</option>
+                                <option value="IT Support">IT Support</option>
+                                <option value="Library">Library</option>
+                                <option value="Accounts">Accounts</option>
+                                <option value="Registrar">Registrar</option>
+                                <option value="Admissions">Admissions</option>
+                                <option value="Placement">Placement</option>
+                                <option value="Student Affairs">Student Affairs</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="branch" class="form-label">Branch/Section</label>
+                            <input type="text" class="form-control" id="branch" name="branch" placeholder="e.g., Main Office, Finance Wing">
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="password" class="form-label">Password *</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                            <div class="form-text">Minimum 6 characters</div>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="confirm_password" class="form-label">Confirm Password *</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                        </div>
+                    </div>
+                    
+                    <input type="hidden" name="staff_type" value="non_teaching_faculty">
+                    
+                    <!-- Biometric Registration Section -->
+                    <div class="row biometric-option">
+                        <div class="col-12 mb-4">
+                            <div class="card border-warning">
+                                <div class="card-header bg-warning text-dark">
+                                    <h6 class="mb-0"><i class="fas fa-fingerprint me-2"></i>Biometric Registration</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="biometric-status" class="alert alert-warning">
+                                        <i class="fas fa-exclamation-circle me-2"></i>Biometric not registered yet
+                                    </div>
+                                    <div class="text-center">
+                                        <p class="mb-3">Register fingerprint authentication for secure login and attendance</p>
+                                        <button type="button" id="faculty-biometric-register-btn" class="btn btn-warning">
+                                            <i class="fas fa-fingerprint me-2"></i>Register Fingerprint Now
+                                        </button>
+                                    </div>
+                                    <p class="text-center text-muted mt-2">
+                                        <small>Fingerprint will be registered immediately for secure login and attendance marking</small>
+                                    </p>
+                                    <input type="hidden" id="biometric-credential-data" name="biometric_credential_data" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-12">
+                            <button type="submit" id="register-btn" class="btn btn-primary me-2">
+                                <i class="fas fa-save me-2"></i>Register Non-Teaching Faculty
+                            </button>
+                            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back to Dashboard
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Instructions -->
+<div class="row justify-content-center mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="fas fa-info-circle me-2"></i>Registration Instructions</h6>
+            </div>
+            <div class="card-body">
+                <ul class="mb-0">
+                    <li>All fields marked with <strong>*</strong> are required.</li>
+                    <li>Username must be unique and will be used for faculty login.</li>
+                    <li>Email address must be unique and valid.</li>
+                    <li>Fingerprint registration is required for secure login and attendance marking.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/webauthn.js') }}"></script>
+{% endblock %}
