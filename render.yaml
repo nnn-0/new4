@@ -11,4 +11,4 @@ services:
       - key: SESSION_SECRET
         value: "your-super-secret-key-change-this-123"
       - key: PYTHON_VERSION
-        value: "3.9.0"
+        value: "3.9.19"
