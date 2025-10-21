@@ -36,18 +36,19 @@ IST = pytz.timezone('Asia/Kolkata')
 
 class WebAuthnService:
     def __init__(self):
-        # Get the proper domain from environment
-        replit_domain = os.environ.get('REPLIT_DOMAINS', 'localhost')
-        if replit_domain != 'localhost':
-            self.rp_id = replit_domain.split(',')[0]
-            self.origin = f"https://{self.rp_id}"
-        else:
-            self.rp_id = 'localhost'
-            self.origin = "http://localhost:5000"
-        
-        self.rp_name = "Smart Attendance System"
-        
-        logging.info(f"WebAuthn configured: rp_id={self.rp_id}, origin={self.origin}")
+    # Get from environment variable on Render
+    render_url = os.environ.get('RENDER_EXTERNAL_URL')
+    if render_url:
+        # Remove https:// from the URL for rp_id
+        self.rp_id = render_url.replace('https://', '')
+        self.origin = f"https://{self.rp_id}"
+    else:
+        # Local development
+        self.rp_id = 'localhost'
+        self.origin = "http://localhost:5000"
+    
+    self.rp_name = "Smart Attendance System"
+    logging.info(f"WebAuthn configured: rp_id={self.rp_id}, origin={self.origin}")
         
     def _generate_challenge_with_opid(self, user_id: str) -> Tuple[bytes, str]:
         """Generate a secure random challenge with unique operation ID - eliminates user-level pending mechanism"""
