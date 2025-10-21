@@ -9,6 +9,6 @@ gunicorn
 schedule
 Pillow
 email-validator
-python-webauthn
+python-webauthn==1.11.1
 flask-login
 psycopg2-binary
